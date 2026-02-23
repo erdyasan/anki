@@ -1,11 +1,12 @@
 # Anki Deck Builder
 
-A desktop application for creating Anki flashcard decks with a GUI. Wraps the complexity of Anki's Note Type / Card Template system into a simple interface powered by SQLite and [genanki](https://github.com/kerrickstaley/genanki).
+A desktop application and MCP server for creating Anki flashcard decks. Wraps the complexity of Anki's Note Type / Card Template system into a simple interface powered by SQLite and [genanki](https://github.com/kerrickstaley/genanki).
 
 ## Features
 
-- **CRUD operations** — Add, edit, delete vocabulary words through a GUI
-- **Search** — Instant search by word or translation
+- **GUI Application** — Add, edit, delete, search vocabulary words through a desktop interface
+- **MCP Server** — AI agents (OpenCode, Claude Code, etc.) can add words and generate decks via MCP tools
+- **Duplicate Detection** — Same word + same type is rejected; different types allowed (e.g., `run` as verb vs noun)
 - **SQLite storage** — All words stored locally in a SQLite database
 - **Anki deck generation** — One-click `.apkg` export ready to import into Anki
 - **Custom Note Type** — English Vocabulary with 5 card templates per word
@@ -45,6 +46,8 @@ pip install -r requirements.txt
 
 ## Usage
 
+### GUI Application
+
 ```bash
 source .venv/bin/activate
 python -m english.app.main
@@ -56,13 +59,57 @@ python -m english.app.main
 4. Click **Generate Anki Deck** to create `output/english_vocab.apkg`
 5. Import the `.apkg` file in Anki via `File > Import`
 
+### MCP Server (AI Integration)
+
+The MCP server allows AI agents to manage vocabulary words directly.
+
+#### OpenCode
+
+Add to your project's `opencode.json` (already included in this repo):
+
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "anki-english": {
+      "type": "local",
+      "command": [
+        "/path/to/anki/.venv/bin/python",
+        "-m",
+        "english.mcp_server"
+      ],
+      "enabled": true
+    }
+  }
+}
+```
+
+#### Available MCP Tools
+
+| Tool | Description |
+|------|-------------|
+| `add_word` | Add a word with type, translation, and 3 example sentences |
+| `search_words` | Search by word or translation |
+| `list_words` | List all words |
+| `get_word` | Get full details of a word by ID |
+| `delete_word` | Delete a word by ID |
+| `generate_anki_deck` | Generate `.apkg` from all words |
+| `get_word_count` | Get total word count |
+
+#### Example AI Prompt
+
+> "Add the word 'abandon' as a verb, meaning 'terk etmek, birakmak', with 3 example sentences and their Turkish translations"
+
+The AI will call `add_word` with all the fields filled in, including `<b>` tags for bolding the target word in examples.
+
 ## Project Structure
 
 ```
 anki/
 ├── english/
+│   ├── mcp_server.py            # MCP server for AI agents
 │   ├── app/
-│   │   ├── main.py              # Entry point
+│   │   ├── main.py              # GUI entry point
 │   │   ├── database.py          # SQLite repository
 │   │   ├── deck_generator.py    # Anki .apkg generator (genanki)
 │   │   └── gui/
@@ -71,6 +118,7 @@ anki/
 │   ├── data/                    # SQLite database (auto-created)
 │   └── output/                  # Generated .apkg files
 ├── csharp/                      # (planned)
+├── opencode.json                # OpenCode MCP config
 ├── requirements.txt
 └── .gitignore
 ```

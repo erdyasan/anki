@@ -59,6 +59,10 @@ class WordRepository:
             conn.execute("""
                 CREATE INDEX IF NOT EXISTS idx_words_word ON words(word)
             """)
+            conn.execute("""
+                CREATE UNIQUE INDEX IF NOT EXISTS idx_words_word_type
+                ON words(word COLLATE NOCASE, word_type COLLATE NOCASE)
+            """)
 
     def _row_to_word(self, row: sqlite3.Row) -> Word:
         return Word(
@@ -73,6 +77,18 @@ class WordRepository:
             example3=row["example3"],
             example3_tr=row["example3_tr"],
         )
+
+    def find_duplicate(self, word: str, word_type: str) -> Word | None:
+        """Check if a word with the same word+word_type already exists (case-insensitive)."""
+        with self._get_connection() as conn:
+            row = conn.execute(
+                """
+                SELECT * FROM words
+                WHERE word = ? COLLATE NOCASE AND word_type = ? COLLATE NOCASE
+                """,
+                (word, word_type),
+            ).fetchone()
+            return self._row_to_word(row) if row else None
 
     def get_all(self) -> list[Word]:
         """Retrieve all words ordered by word alphabetically."""
